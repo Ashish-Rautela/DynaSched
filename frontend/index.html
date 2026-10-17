@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DynaSched | Priority-Based Task Scheduling System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1>DynaSched</h1>
+          <p class="subtitle">Priority-Based Task Scheduling & Performance Analysis System</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <!-- Basic Auth User Profile Pill -->
+        <div class="auth-badge" id="authBadge">
+          <div class="auth-icon">👤</div>
+          <div class="auth-details">
+            <span class="auth-role" id="userRoleBadge">Guest</span>
+            <span class="auth-name" id="userNameLabel">Authenticating...</span>
+          </div>
+          <button id="btnAuthToggle" class="btn btn-sm btn-outline">Login</button>
+        </div>
+
+        <!-- Team Badge -->
+        <div class="team-badge">
+          <span class="badge-title">Team Avengers</span>
+          <span class="members-pill" title="Nitin (Lead), Ashish Rautela, Rishi Raj Thakuri, Sahil Negi">4 Members ▾</span>
+          <div class="team-dropdown">
+            <strong>Team Members:</strong>
+            <ul>
+              <li><strong>Nitin</strong> (Lead) - ML-3 (2418700)</li>
+              <li><strong>Ashish Rautela</strong> - D2 (2418361)</li>
+              <li><strong>Rishi Raj Thakuri</strong> - E2 (2418838)</li>
+              <li><strong>Sahil Negi</strong> - A1 (2418883)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button id="btnRunSim" class="btn btn-primary">▶ Run Scheduler</button>
+        <button id="btnSeed" class="btn btn-outline">🌱 Load Demo Workload</button>
+        <button id="btnReset" class="btn btn-secondary">↺ Reset Queue</button>
+        <button id="btnOpenAddTask" class="btn btn-success">+ Add Task</button>
+      </div>
+      <div class="algo-pill">
+        <span class="pulse-dot"></span>
+        Algorithm: <strong>Dynamic Priority with Aging (Non-Preemptive)</strong>
+      </div>
+    </div>
+
+    <!-- Dynamic Formula Explanation Bar -->
+    <section class="formula-banner">
+      <div class="formula-header">
+        <span class="formula-title">Dynamic Priority Function:</span>
+        <code class="formula-code">Dynamic Score = (3.0 × Importance) + (1.5 × Waiting / Aging) + (2.0 × Urgency) − (0.5 × Burst)</code>
+        <button id="toggleWeightsBtn" class="btn-text">⚙ Tuning Weights</button>
+      </div>
+      <div id="weightsDrawer" class="weights-drawer hidden">
+        <div class="weight-item">
+          <label>Importance Weight (w_I): <span id="valWI">3.0</span></label>
+          <input type="range" id="weightImportance" min="0" max="10" step="0.5" value="3.0">
+        </div>
+        <div class="weight-item">
+          <label>Aging / Waiting Weight (w_A): <span id="valWA">1.5</span></label>
+          <input type="range" id="weightAging" min="0" max="5" step="0.5" value="1.5">
+        </div>
+        <div class="weight-item">
+          <label>Urgency Weight (w_U): <span id="valWU">2.0</span></label>
+          <input type="range" id="weightUrgency" min="0" max="5" step="0.5" value="2.0">
+        </div>
+        <div class="weight-item">
+          <label>Burst Penalty (w_B): <span id="valWB">0.5</span></label>
+          <input type="range" id="weightBurst" min="0" max="3" step="0.1" value="0.5">
+        </div>
+      </div>
+    </section>
+
+    <!-- Performance KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">Avg Waiting Time</div>
+        <div class="kpi-value" id="kpiAvgWait">-</div>
+        <div class="kpi-sub">Time waiting in ready queue</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Avg Turnaround Time</div>
+        <div class="kpi-value" id="kpiAvgTurnaround">-</div>
+        <div class="kpi-sub">Completion − Arrival</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">CPU Utilization</div>
+        <div class="kpi-value" id="kpiCpuUtil">-</div>
+        <div class="kpi-sub" id="kpiMakespan">Makespan: -</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Deadlines Status</div>
+        <div class="kpi-value" id="kpiDeadlines">-</div>
+        <div class="kpi-sub" id="kpiDeadlineRatio">Met vs Missed</div>
+      </div>
+    </section>
+
+    <!-- Gantt Chart Timeline Visualization -->
+    <section class="card mb-4">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Execution Timeline (Interactive Gantt Chart)</span>
+          <span class="card-badge" id="ganttStatusBadge">Waiting for simulation run</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="gantt-wrapper">
+          <div id="ganttChart" class="gantt-chart">
+            <div class="empty-state">Click "Run Scheduler" or "Load Demo Workload" to view simulation timeline</div>
+          </div>
+          <div id="ganttTimeAxis" class="gantt-axis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Grid: Task Queue & Live Scheduling Decisions -->
+    <div class="content-grid">
+      <!-- Left Column: Tasks Queue Table -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Ready / Pending Task Queue</span>
+            <span class="card-badge" id="taskCountBadge">0 Tasks</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Task Name</th>
+                  <th>Importance</th>
+                  <th>Arr ($t$)</th>
+                  <th>Burst</th>
+                  <th>Deadline</th>
+                  <th>Dependencies</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tasksTableBody">
+                <tr>
+                  <td colspan="9" class="text-center">Loading tasks...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Scheduling Decisions Log -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Scheduling Decision Audit Log</span>
+            <span class="card-badge" id="decisionsCount">0 Decisions</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="schedulingLog" class="log-container">
+            <div class="empty-state">No scheduling decisions recorded yet. Run simulation to inspect dynamic priority scoring and aging behavior.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Execution Results Table -->
+    <section class="card mt-4">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Execution Performance & Turnaround Metrics Breakdown</span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Arrival ($t$)</th>
+                <th>Burst</th>
+                <th>Deadline</th>
+                <th>Start ($t$)</th>
+                <th>Completion ($t$)</th>
+                <th>Wait Time</th>
+                <th>Turnaround</th>
+                <th>Response</th>
+                <th>Deadline Met</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+              <tr>
+                <td colspan="10" class="text-center">No simulation results available.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add Task Modal -->
+  <div id="addTaskModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Create New Task</h3>
+        <button class="btn-close" id="btnCloseModal">&times;</button>
+      </div>
+      <form id="addTaskForm">
+        <div class="form-group">
+          <label for="taskName">Task Name</label>
+          <input type="text" id="taskName" required placeholder="e.g. Payment Gateway Sync">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="importance">Importance (1 - 10)</label>
+            <input type="number" id="importance" min="1" max="10" value="5" required>
+          </div>
+          <div class="form-group">
+            <label for="arrivalTime">Arrival Time ($t$)</label>
+            <input type="number" id="arrivalTime" min="0" value="0" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="burstTime">Burst Time (units)</label>
+            <input type="number" id="burstTime" min="1" value="4" required>
+          </div>
+          <div class="form-group">
+            <label for="deadline">Deadline ($t$)</label>
+            <input type="number" id="deadline" min="1" value="20" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="assignedUser">Assignee</label>
+          <select id="assignedUser">
+            <option value="">Select Member...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dependencies">Prerequisite Dependencies (Optional)</label>
+          <select id="dependencies" multiple class="select-multi">
+            <!-- Populated dynamically -->
+          </select>
+          <small class="form-hint">Hold Ctrl / Cmd to select multiple prerequisite tasks.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- HTTP Basic Auth Login Modal -->
+  <div id="loginModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>HTTP Basic Authentication</h3>
+        <button class="btn-close" id="btnCloseLoginModal">&times;</button>
+      </div>
+      <form id="loginForm">
+        <div id="loginError" class="auth-error-banner hidden"></div>
+        <div class="form-group">
+          <label for="authUsername">Username or Email</label>
+          <input type="text" id="authUsername" required placeholder="admin or team email" value="admin">
+        </div>
+        <div class="form-group">
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" required placeholder="Enter password" value="admin123">
+        </div>
+        <div class="auth-credentials-box">
+          <div class="auth-box-title">Demo Credentials:</div>
+          <div class="auth-box-item">• <strong>Admin:</strong> <code>admin</code> / <code>admin123</code></div>
+          <div class="auth-box-item">• <strong>Lead:</strong> <code>nitin892684@gmail.com</code> / <code>password123</code></div>
+          <div class="auth-box-item">• <strong>Developer:</strong> <code>ashishrautela190@gmail.com</code> / <code>password123</code></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelLogin">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitLogin">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

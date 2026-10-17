@@ -1,0 +1,16 @@
+{
+  "name": "dynasched-system",
+  "version": "1.0.0",
+  "description": "Priority-Based Task Scheduling and Performance Analysis System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "init-db": "node db-init.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.3"
+  }
+}
