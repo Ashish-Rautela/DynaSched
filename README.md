@@ -16,6 +16,7 @@
 3. **Waiting Time & Aging** ($W \times \text{agingFactor}$) to prevent starvation of low-priority tasks
 4. **Burst Time** ($B$) to optimize throughput
 5. **Task Dependency Resolution** ensuring prerequisite tasks complete before dependents run
+6. **Comparative Performance Analysis** evaluating FCFS, SJF, Static Priority, and Dynamic Priority with Aging side-by-side
 
 ### Dynamic Priority Formula
 $$\text{Dynamic Priority Score} = (w_I \times I) + (w_A \times W) + (w_U \times U) - (w_B \times B)$$
@@ -29,10 +30,10 @@ $$\text{Dynamic Priority Score} = (w_I \times I) + (w_A \times W) + (w_U \times 
 
 ## 🏗️ System Architecture: MVC & Modular Services
 
-The application follows an **MVC (Model-View-Controller)** pattern with clean **Frontend / Backend separation**, **modular backend services** (instead of a single monolithic service), and **HTTP Basic Authentication (RFC 7617)**.
+The application follows an **MVC (Model-View-Controller)** pattern with clean **Frontend / Backend separation**, **modular backend services**, and **JSON Web Token (JWT) Authentication**.
 
 ```
-pbl/
+DynaSched/
 ├── backend/
 │   ├── config/
 │   │   └── db.js                 # PostgreSQL connection pool configuration
@@ -42,44 +43,45 @@ pbl/
 │   │   ├── dependencyModel.js    # Task dependencies queries & constraints
 │   │   └── historyModel.js       # Execution & scheduling history records
 │   ├── services/                 # Business logic divided into dedicated services
-│   │   ├── authService.js        # Basic Auth header parsing & credentials verification
+│   │   ├── authService.js        # JWT generation, verification & credentials check
 │   │   ├── userService.js        # User retrieval operations
 │   │   ├── taskService.js        # Task validation, transaction-based creation & updates
-│   │   ├── dependencyService.js  # Prerequisite cycle & constraint management
-│   │   ├── schedulerService.js   # Simulation orchestration & transaction logging
+│   │   ├── dependencyService.js  # Prerequisite cycle detection & constraint management
+│   │   ├── schedulerService.js   # Simulation orchestration & multi-algorithm comparison
 │   │   └── historyService.js     # Performance aggregation, queue reset & workload seeding
 │   ├── controllers/              # [C in MVC] HTTP request / response handlers
-│   │   ├── authController.js     # /api/auth/login, /api/auth/me
+│   │   ├── authController.js     # /api/auth/login, /api/auth/me, /api/auth/logout
 │   │   ├── userController.js     # /api/users
 │   │   ├── taskController.js     # /api/tasks (GET, POST, PUT, DELETE)
 │   │   ├── dependencyController.js # /api/dependencies (POST, DELETE)
-│   │   ├── schedulerController.js  # /api/simulate
+│   │   ├── schedulerController.js  # /api/simulate, /api/simulate/compare
 │   │   └── historyController.js    # /api/history, /api/reset, /api/seed
 │   ├── middlewares/
-│   │   └── authMiddleware.js     # Standard HTTP Basic Auth (RFC 7617) guard
+│   │   └── authMiddleware.js     # Standard JWT Bearer token authentication guard
 │   ├── scheduler/
-│   │   └── schedulerEngine.js    # Core non-preemptive dynamic priority algorithm
+│   │   └── schedulerEngine.js    # Dynamic Priority with Aging, FCFS, SJF, Static Priority
 │   ├── routes/
 │   │   └── apiRoutes.js          # Express API route declarations
 │   └── server.js                 # Express server & static asset mount
 │
 ├── frontend/                     # [V in MVC] Clean separated Frontend View layer
-│   ├── index.html                # Semantic UI, auth badge, Gantt chart, metrics cards
+│   ├── index.html                # Semantic UI, auth badge, Gantt chart, metrics cards, comparison table
 │   ├── style.css                 # Dark theme responsive styling & modal dialogs
-│   └── app.js                    # Client-side controller, Basic Auth token handling & Gantt rendering
-├── test.js                       # Comprehensive test suite (scheduler, services, auth, models)
+│   └── app.js                    # Client-side controller, JWT token handling, Gantt rendering & algorithm comparison
+├── test.js                       # Comprehensive test suite (scheduler, algorithms, JWT auth, models)
 ├── db-init.js                    # Database schema & user seed runner
-└── schema.sql                    # PostgreSQL schema, views, triggers, and constraints
+└── schema.sql                    # PostgreSQL schema, views, triggers, and stored procedures
 ```
 
 ---
 
-## 🔐 HTTP Basic Authentication
+## 🔐 JSON Web Token (JWT) Authentication
 
-The API is protected using RFC 7617 **HTTP Basic Authentication**:
-- **Header format**: `Authorization: Basic <base64(username:password)>`
-- Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Basic realm="DynaSched System"`.
-- The frontend features an interactive login modal, persistent session storage, and an in-app auth status pill.
+The API is protected using standard **JSON Web Tokens (JWT)**:
+- **Header format**: `Authorization: Bearer <jwt_token>`
+- **Token Payload**: `{ user_id, name, email, role }` signed using HMAC-SHA256 with a 24-hour expiration.
+- Unauthenticated requests receive `401 Unauthorized`.
+- The frontend features an interactive login modal, persistent localStorage token caching, and an in-app auth status pill.
 
 ### Default Credentials:
 | Account Type | Username / Email | Password | Role |
@@ -94,19 +96,35 @@ The API is protected using RFC 7617 **HTTP Basic Authentication**:
 
 ## 🗄️ PostgreSQL Database Design
 
-The system actively utilizes PostgreSQL features (relational integrity, foreign keys, CHECK constraints, views, indexes, triggers, and transactions).
+The system actively utilizes PostgreSQL features (relational integrity, foreign keys, CHECK constraints, views, indexes, triggers, stored procedures, and transactions).
 
 ### 1. Tables
 - **`users`**: Team members (`user_id`, `name`, `email`, `password`, `role`).
-- **`tasks`**: Task metadata (`task_id`, `task_name`, `importance`, `arrival_time`, `burst_time`, `deadline`, `status`, `user_id`).
+- **`tasks`**: Task metadata (`task_id`, `task_name`, `importance`, `arrival_time`, `burst_time`, `deadline`, `status`, `completion_time`, `user_id`).
 - **`task_dependencies`**: Directed prerequisite graph preventing execution of blocked tasks.
 - **`execution_history`**: Simulated run results (`start_time`, `completion_time`, `waiting_time`, `turnaround_time`, `response_time`, `deadline_met`).
 - **`scheduling_history`**: Log of each scheduling event at time $t$, dynamic score, and reason.
 
-### 2. Views & Triggers
-- **`ready_tasks_view`**: Computes eligible tasks whose prerequisite dependencies are satisfied.
+### 2. Views, Triggers & Stored Procedures
+- **`ready_tasks_view`**: Computes eligible tasks whose prerequisite dependencies are all satisfied.
 - **`performance_summary_view`**: Aggregates average waiting time, average turnaround time, average response time, total makespan, and deadline misses.
-- **`trg_after_execution_insert`**: Database trigger automatically updating task status to `'COMPLETED'` on execution log insert.
+- **`trg_after_execution_insert`**: Database trigger automatically updating task status to `'COMPLETED'` and syncing `completion_time` on execution log insert.
+- **`sp_reset_simulation()`**: Stored procedure to reset all tasks to `PENDING` and clear history.
+- **`sp_complete_task(p_task_id)`**: Stored procedure to manually mark a task as `COMPLETED`.
+- **`sp_seed_history_snapshot(...)`**: Stored procedure for scheduling decision audit snapshots.
+
+---
+
+## ⚙️ Scheduling Algorithms Comparison
+
+DynaSched implements and compares 4 scheduling approaches on identical task workloads:
+
+| Algorithm | Selection Criterion | Starvation Risk | Best Suited For |
+| :--- | :--- | :--- | :--- |
+| **FCFS** | Arrival Time ($t_{\text{arr}}$) | None (fair queue) | Simple workloads, batch pipelines |
+| **SJF** | Shortest Burst Time ($t_{\text{burst}}$) | High (long jobs starve) | Minimizing average waiting time |
+| **Static Priority** | Fixed Importance ($I \in [1, 10]$) | Severe (low-priority jobs starve) | Strict priority environments |
+| **Dynamic Priority + Aging** | $(w_I \times I) + (w_A \times W) + (w_U \times U) - (w_B \times B)$ | **Zero** (aging boosts waiting jobs) | Mixed workloads with deadlines |
 
 ---
 
@@ -114,7 +132,7 @@ The system actively utilizes PostgreSQL features (relational integrity, foreign 
 
 ### 1. Prerequisites
 - **Node.js** (v18+ recommended)
-- **PostgreSQL 16** (running locally on port 5432)
+- **PostgreSQL** (running locally on port 5432)
 
 ### 2. Configuration
 Check or edit `.env`:
@@ -125,18 +143,20 @@ PGPORT=5432
 PGUSER=postgres
 PGPASSWORD=postgres
 PGDATABASE=dynasched_db
+JWT_SECRET=dynasched_jwt_secret_2024
+JWT_EXPIRES_IN=24h
 BASIC_AUTH_USER=admin
 BASIC_AUTH_PASS=admin123
 ```
 
 ### 3. Initialize Database
-Create and seed schema, views, triggers, and default users:
+Create and seed schema, views, triggers, stored procedures, and default users:
 ```bash
 npm run init-db
 ```
 
-### 4. Run Self-Check Verification Test
-Executes test suites covering the scheduling algorithm, aging starvation prevention, Basic Auth header parsing & verification, input validation, and service modularity:
+### 4. Run Verification Test Suite
+Executes test suites covering Dynamic Priority with aging, baseline algorithms (FCFS, SJF, Static Priority), dependency cycle detection, JWT token authentication, and MVC architecture integrity:
 ```bash
 npm test
 ```
@@ -150,10 +170,12 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 ---
 
 ## 🖥️ Web Dashboard Features
-- **HTTP Basic Authentication**: Integrated login/logout modal, user role display, and credentials guidance.
+- **JWT Authentication**: Integrated login/logout modal, user role display, and credentials guidance.
+- **Algorithm Selector**: Switch between Dynamic Priority, FCFS, SJF, and Static Priority directly in the toolbar.
+- **Comparative Analysis Section**: One-click "⚖ Compare All" button running all 4 algorithms and displaying a side-by-side performance metrics comparison table highlighting the best metrics in green.
 - **One-Click Demo Workload**: Seeds realistic tasks showcasing dependency chains, aging boosts, and tight deadline alerts.
 - **Interactive Gantt Chart**: Visualizes CPU execution timeline, active tasks, and idle time units.
 - **Real-Time Performance KPIs**: Average Waiting Time, Turnaround Time, CPU Utilization, and Deadline Success Rate.
 - **Dynamic Score Tuning**: Live sliders for fine-tuning weights ($w_I, w_A, w_U, w_B$).
 - **Scheduling Decisions Log**: Step-by-step breakdown of how each scheduling decision was calculated.
-- **Task Management**: Full task creation with dependency picker and deletion controls.
+- **Task Management**: Full task creation, dependency picker, inline editing modal, and deletion controls.

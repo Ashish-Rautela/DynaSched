@@ -11,6 +11,7 @@ class TaskModel {
         t.burst_time, 
         t.deadline, 
         t.status, 
+        t.completion_time,
         t.user_id,
         u.name AS user_name,
         COALESCE(

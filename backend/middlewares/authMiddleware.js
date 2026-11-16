@@ -1,42 +1,20 @@
 const AuthService = require('../services/authService');
 
-/**
- * Standard HTTP Basic Authentication Middleware (RFC 7617).
- * Intercepts requests, validates Authorization: Basic <base64>, and attaches req.user.
- */
-async function basicAuthMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
+module.exports = function jwtMiddleware(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = (authHeader && authHeader.startsWith('Bearer '))
+    ? authHeader.slice(7)
+    : req.headers['x-access-token'];
 
-  if (!authHeader) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="DynaSched System"');
-    return res.status(401).json({
-      error: 'Authentication required. Please provide HTTP Basic Auth credentials.'
-    });
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required. Please login.' });
   }
 
-  const credentials = AuthService.parseBasicAuthHeader(authHeader);
-  if (!credentials) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="DynaSched System"');
-    return res.status(401).json({
-      error: 'Malformed Basic Authentication header.'
-    });
+  try {
+    const decoded = AuthService.verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token. Please login again.' });
   }
-
-  const { authenticated, user, error } = await AuthService.verifyCredentials(
-    credentials.username,
-    credentials.password
-  );
-
-  if (!authenticated) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="DynaSched System"');
-    return res.status(401).json({
-      error: error || 'Invalid username or password.'
-    });
-  }
-
-  // Attach authenticated user to request context
-  req.user = user;
-  next();
-}
-
-module.exports = basicAuthMiddleware;
+};

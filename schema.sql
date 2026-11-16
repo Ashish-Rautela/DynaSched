@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     deadline INT NOT NULL CHECK (deadline >= arrival_time + burst_time),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' 
         CHECK (status IN ('PENDING', 'READY', 'RUNNING', 'COMPLETED', 'BLOCKED')),
+    completion_time INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -99,7 +100,8 @@ CREATE OR REPLACE FUNCTION trg_sync_task_completion()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE tasks 
-    SET status = 'COMPLETED'
+    SET status = 'COMPLETED',
+        completion_time = NEW.completion_time
     WHERE task_id = NEW.task_id;
     RETURN NEW;
 END;
@@ -110,3 +112,46 @@ CREATE TRIGGER trg_after_execution_insert
 AFTER INSERT ON execution_history
 FOR EACH ROW
 EXECUTE FUNCTION trg_sync_task_completion();
+
+-- ====================================================================
+-- 9. Stored Procedures
+-- ====================================================================
+
+-- Procedure: sp_reset_simulation
+-- Resets all tasks to PENDING and clears execution and scheduling history
+CREATE OR REPLACE PROCEDURE sp_reset_simulation()
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM execution_history;
+    DELETE FROM scheduling_history;
+    UPDATE tasks SET status = 'PENDING', completion_time = NULL;
+END;
+$$;
+
+-- Procedure: sp_complete_task
+-- Marks a specific task as COMPLETED (manual override)
+CREATE OR REPLACE PROCEDURE sp_complete_task(p_task_id INT)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE tasks SET status = 'COMPLETED' WHERE task_id = p_task_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Task with ID % not found', p_task_id;
+    END IF;
+END;
+$$;
+
+-- Procedure: sp_seed_history_snapshot
+-- Records a snapshot entry in scheduling_history for audit purposes
+CREATE OR REPLACE PROCEDURE sp_seed_history_snapshot(
+    p_simulated_time INT,
+    p_task_id INT,
+    p_score NUMERIC,
+    p_algorithm VARCHAR,
+    p_reason TEXT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO scheduling_history (simulated_time, selected_task_id, priority_score, algorithm, decision_reason)
+    VALUES (p_simulated_time, p_task_id, p_score, p_algorithm, p_reason);
+END;
+$$;
