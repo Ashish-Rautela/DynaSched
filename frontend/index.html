@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DynaSched | Priority-Based Task Scheduling System</title>
+  <title>DynaSched | Priority-Based Dynamic Task Scheduling & Comparative Performance Analysis</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Header -->
@@ -16,12 +20,15 @@
       <div class="brand">
         <div class="logo-icon">⚡</div>
         <div>
-          <h1>DynaSched</h1>
-          <p class="subtitle">Priority-Based Task Scheduling & Performance Analysis System</p>
+          <div class="brand-title-wrap">
+            <h1>DynaSched</h1>
+            <span class="version-tag">v2.0 • DBMS Driven</span>
+          </div>
+          <p class="subtitle">Operating Systems Priority Scheduling &amp; Performance Benchmark System</p>
         </div>
       </div>
       <div class="header-right">
-        <!-- Basic Auth User Profile Pill -->
+        <!-- JWT Auth User Profile Pill -->
         <div class="auth-badge" id="authBadge">
           <div class="auth-icon">👤</div>
           <div class="auth-details">
@@ -34,14 +41,15 @@
         <!-- Team Badge -->
         <div class="team-badge">
           <span class="badge-title">Team Avengers</span>
-          <span class="members-pill" title="Nitin (Lead), Ashish Rautela, Rishi Raj Thakuri, Sahil Negi">4 Members ▾</span>
+          <span class="members-pill" title="Nitin (Lead), Ashish Rautela, Rishi Raj Thakuri, Sahil Negi">4 Members
+            ▾</span>
           <div class="team-dropdown">
-            <strong>Team Members:</strong>
+            <div class="dropdown-header">Project Team • Section &amp; Roll:</div>
             <ul>
-              <li><strong>Nitin</strong> (Lead) - ML-3 (2418700)</li>
-              <li><strong>Ashish Rautela</strong> - D2 (2418361)</li>
-              <li><strong>Rishi Raj Thakuri</strong> - E2 (2418838)</li>
-              <li><strong>Sahil Negi</strong> - A1 (2418883)</li>
+              <li><strong>Nitin</strong> (Lead) — ML-3 (2418700)</li>
+              <li><strong>Ashish Rautela</strong> — D2 (2418361)</li>
+              <li><strong>Rishi Raj Thakuri</strong> — E2 (2418838)</li>
+              <li><strong>Sahil Negi</strong> — A1 (2418883)</li>
             </ul>
           </div>
         </div>
@@ -52,81 +60,225 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <button id="btnRunSim" class="btn btn-primary">▶ Run Scheduler</button>
+        <button id="btnCompare" class="btn btn-gradient">⚖ Compare All 4 Algorithms</button>
         <button id="btnSeed" class="btn btn-outline">🌱 Load Demo Workload</button>
         <button id="btnReset" class="btn btn-secondary">↺ Reset Queue</button>
         <button id="btnOpenAddTask" class="btn btn-success">+ Add Task</button>
       </div>
-      <div class="algo-pill">
-        <span class="pulse-dot"></span>
-        Algorithm: <strong>Dynamic Priority with Aging (Non-Preemptive)</strong>
+      <div class="toolbar-right">
+        <div class="algo-selector-wrap">
+          <label class="algo-select-label" for="algoSelector">Active Policy:</label>
+          <select id="algoSelector" class="algo-selector">
+            <option value="dynamic">Dynamic Priority (Aging)</option>
+            <option value="fcfs">First-Come, First-Served (FCFS)</option>
+            <option value="sjf">Shortest Job First (SJF)</option>
+            <option value="staticPriority">Static Priority</option>
+          </select>
+        </div>
+        <div class="algo-pill">
+          <span class="pulse-dot"></span>
+          <span id="currentAlgoLabel">Dynamic Priority with Aging (Non-Preemptive)</span>
+        </div>
       </div>
     </div>
 
     <!-- Dynamic Formula Explanation Bar -->
     <section class="formula-banner">
       <div class="formula-header">
-        <span class="formula-title">Dynamic Priority Function:</span>
-        <code class="formula-code">Dynamic Score = (3.0 × Importance) + (1.5 × Waiting / Aging) + (2.0 × Urgency) − (0.5 × Burst)</code>
+        <div class="formula-tag">Algorithm Function</div>
+        <code
+          class="formula-code">Dynamic Score = (3.0 × Importance) + (1.5 × Waiting / Aging) + (2.0 × Urgency) − (0.5 × Burst)</code>
         <button id="toggleWeightsBtn" class="btn-text">⚙ Tuning Weights</button>
       </div>
       <div id="weightsDrawer" class="weights-drawer hidden">
         <div class="weight-item">
-          <label>Importance Weight (w_I): <span id="valWI">3.0</span></label>
+          <div class="weight-label-row">
+            <label>Importance Weight (w_I)</label>
+            <span id="valWI" class="weight-val">3.0</span>
+          </div>
           <input type="range" id="weightImportance" min="0" max="10" step="0.5" value="3.0">
+          <small class="form-hint">Weights base priority level (1-10)</small>
         </div>
         <div class="weight-item">
-          <label>Aging / Waiting Weight (w_A): <span id="valWA">1.5</span></label>
+          <div class="weight-label-row">
+            <label>Aging Weight (w_A)</label>
+            <span id="valWA" class="weight-val">1.5</span>
+          </div>
           <input type="range" id="weightAging" min="0" max="5" step="0.5" value="1.5">
+          <small class="form-hint">Boost per unit time waiting (prevents starvation)</small>
         </div>
         <div class="weight-item">
-          <label>Urgency Weight (w_U): <span id="valWU">2.0</span></label>
+          <div class="weight-label-row">
+            <label>Urgency Weight (w_U)</label>
+            <span id="valWU" class="weight-val">2.0</span>
+          </div>
           <input type="range" id="weightUrgency" min="0" max="5" step="0.5" value="2.0">
+          <small class="form-hint">Slack-time risk boost when deadline tightens</small>
         </div>
         <div class="weight-item">
-          <label>Burst Penalty (w_B): <span id="valWB">0.5</span></label>
+          <div class="weight-label-row">
+            <label>Burst Penalty (w_B)</label>
+            <span id="valWB" class="weight-val">0.5</span>
+          </div>
           <input type="range" id="weightBurst" min="0" max="3" step="0.1" value="0.5">
+          <small class="form-hint">Small penalty to favor shorter tasks</small>
         </div>
       </div>
     </section>
 
     <!-- Performance KPI Cards -->
     <section class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-title">Avg Waiting Time</div>
-        <div class="kpi-value" id="kpiAvgWait">-</div>
-        <div class="kpi-sub">Time waiting in ready queue</div>
+      <div class="kpi-card" id="kpiCardWait">
+        <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">⏳</div>
+        <div class="kpi-meta">
+          <div class="kpi-title">Avg Waiting Time</div>
+          <div class="kpi-value" id="kpiAvgWait">-</div>
+          <div class="kpi-sub">Time waiting in ready queue</div>
+        </div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-title">Avg Turnaround Time</div>
-        <div class="kpi-value" id="kpiAvgTurnaround">-</div>
-        <div class="kpi-sub">Completion − Arrival</div>
+      <div class="kpi-card" id="kpiCardTAT">
+        <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">⚡</div>
+        <div class="kpi-meta">
+          <div class="kpi-title">Avg Turnaround Time</div>
+          <div class="kpi-value" id="kpiAvgTurnaround">-</div>
+          <div class="kpi-sub">Completion − Arrival ($t$)</div>
+        </div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-title">CPU Utilization</div>
-        <div class="kpi-value" id="kpiCpuUtil">-</div>
-        <div class="kpi-sub" id="kpiMakespan">Makespan: -</div>
+      <div class="kpi-card" id="kpiCardCPU">
+        <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🖥️</div>
+        <div class="kpi-meta">
+          <div class="kpi-title">CPU Utilization</div>
+          <div class="kpi-value" id="kpiCpuUtil">-</div>
+          <div class="kpi-sub" id="kpiMakespan">Makespan: -</div>
+        </div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-title">Deadlines Status</div>
-        <div class="kpi-value" id="kpiDeadlines">-</div>
-        <div class="kpi-sub" id="kpiDeadlineRatio">Met vs Missed</div>
+      <div class="kpi-card" id="kpiCardDeadline">
+        <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">🎯</div>
+        <div class="kpi-meta">
+          <div class="kpi-title">Deadlines Status</div>
+          <div class="kpi-value" id="kpiDeadlines">-</div>
+          <div class="kpi-sub" id="kpiDeadlineRatio">Met vs Missed</div>
+        </div>
       </div>
     </section>
 
     <!-- Gantt Chart Timeline Visualization -->
     <section class="card mb-4">
-      <div class="card-header">
+      <div class="card-header flex-between">
         <div class="card-title">
           <span>Execution Timeline (Interactive Gantt Chart)</span>
           <span class="card-badge" id="ganttStatusBadge">Waiting for simulation run</span>
         </div>
+        <div class="gantt-legend" id="ganttLegend"></div>
       </div>
       <div class="card-body">
         <div class="gantt-wrapper">
           <div id="ganttChart" class="gantt-chart">
-            <div class="empty-state">Click "Run Scheduler" or "Load Demo Workload" to view simulation timeline</div>
+            <div class="empty-state">Click "▶ Run Scheduler" or "🌱 Load Demo Workload" to view simulation timeline
+            </div>
           </div>
           <div id="ganttTimeAxis" class="gantt-axis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         COMPREHENSIVE ALGORITHM COMPARISON ANALYSIS SECTION
+         ============================================================ -->
+    <section class="card mt-4 mb-4 comparison-card" id="comparisonSection" style="display:none">
+      <div class="card-header flex-between">
+        <div>
+          <div class="card-title">
+            <span class="header-highlight-dot"></span>
+            <span>Comparative Algorithm Performance Analysis</span>
+            <span class="card-badge badge-purple" id="comparisonBadge">4 Algorithms Benchmarked</span>
+          </div>
+          <p class="card-subtitle mt-1">Quantitative evaluation of FCFS, SJF, Static Priority, and Dynamic Priority with
+            Aging on identical workload</p>
+        </div>
+        <div class="card-actions">
+          <button id="btnExportReport" class="btn btn-sm btn-outline">📋 Export Report</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- 1. Winner Podium & Key Findings Cards -->
+        <div class="comp-podium-grid" id="compPodiumGrid">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- 2. Visual Metric Comparison Meters (Bar Charts) -->
+        <div class="comp-visual-grid mb-4">
+          <div class="comp-chart-card">
+            <div class="comp-chart-header">
+              <span class="comp-chart-title">⏱️ Average Waiting Time Comparison</span>
+              <span class="comp-chart-badge">Lower is better</span>
+            </div>
+            <div id="meterWaitTime" class="comp-meter-list"></div>
+          </div>
+
+          <div class="comp-chart-card">
+            <div class="comp-chart-header">
+              <span class="comp-chart-title">⚡ Average Turnaround Time Comparison</span>
+              <span class="comp-chart-badge">Lower is better</span>
+            </div>
+            <div id="meterTurnaround" class="comp-meter-list"></div>
+          </div>
+
+          <div class="comp-chart-card">
+            <div class="comp-chart-header">
+              <span class="comp-chart-title">🛡️ Maximum Wait Time (Starvation Metric)</span>
+              <span class="comp-chart-badge">Lower = fair</span>
+            </div>
+            <div id="meterMaxWait" class="comp-meter-list"></div>
+          </div>
+        </div>
+
+        <!-- 3. Multi-Algorithm Stacked Gantt Timelines Comparison -->
+        <div class="stacked-timelines-wrap mb-4">
+          <div class="comp-timeline-header">
+            <h4>Comparative CPU Scheduling Timelines (Side-by-Side Execution Order)</h4>
+            <span class="font-sm text-dim">Observe how CPU ordering and idle times differ across scheduling
+              policies</span>
+          </div>
+          <div id="stackedGanttContainer" class="stacked-gantt-container"></div>
+        </div>
+
+        <!-- 4. Comprehensive Metrics Comparison Table -->
+        <div class="comp-table-wrap mb-4">
+          <h4 class="comp-section-title mb-2">Quantitative Metrics Benchmark Matrix</h4>
+          <div class="table-container">
+            <table class="data-table" id="comparisonTable">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Rank</th>
+                  <th>Algorithm</th>
+                  <th>Avg Wait Time</th>
+                  <th>Avg Turnaround</th>
+                  <th>Avg Response</th>
+                  <th>CPU Util %</th>
+                  <th>Deadlines Met</th>
+                  <th>Deadline Misses</th>
+                  <th>Max Wait Time</th>
+                  <th>Starvation Risk</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 5. Dynamic Algorithmic Insights & Evaluation Findings Box -->
+        <div class="insights-card" id="insightsCard">
+          <div class="insights-header">
+            <span class="insights-icon">💡</span>
+            <div>
+              <h4 class="insights-title">Algorithmic Analysis &amp; Academic Evaluation Findings</h4>
+              <p class="insights-subtitle">Automated comparative insights derived from the simulated workload</p>
+            </div>
+          </div>
+          <div class="insights-grid" id="insightsContent">
+            <!-- Dynamically populated -->
+          </div>
         </div>
       </div>
     </section>
@@ -135,10 +287,13 @@
     <div class="content-grid">
       <!-- Left Column: Tasks Queue Table -->
       <section class="card">
-        <div class="card-header">
+        <div class="card-header flex-between">
           <div class="card-title">
             <span>Ready / Pending Task Queue</span>
             <span class="card-badge" id="taskCountBadge">0 Tasks</span>
+          </div>
+          <div class="table-search-wrap">
+            <input type="text" id="taskSearchInput" placeholder="🔍 Search tasks..." class="search-input">
           </div>
         </div>
         <div class="card-body p-0">
@@ -154,7 +309,7 @@
                   <th>Deadline</th>
                   <th>Dependencies</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="tasksTableBody">
@@ -169,15 +324,17 @@
 
       <!-- Right Column: Scheduling Decisions Log -->
       <section class="card">
-        <div class="card-header">
+        <div class="card-header flex-between">
           <div class="card-title">
             <span>Scheduling Decision Audit Log</span>
             <span class="card-badge" id="decisionsCount">0 Decisions</span>
           </div>
+          <span class="font-xs text-dim">Step-by-step trace</span>
         </div>
         <div class="card-body p-0">
           <div id="schedulingLog" class="log-container">
-            <div class="empty-state">No scheduling decisions recorded yet. Run simulation to inspect dynamic priority scoring and aging behavior.</div>
+            <div class="empty-state">No scheduling decisions recorded yet. Run simulation to inspect dynamic priority
+              scoring and aging behavior.</div>
           </div>
         </div>
       </section>
@@ -185,10 +342,11 @@
 
     <!-- Execution Results Table -->
     <section class="card mt-4">
-      <div class="card-header">
+      <div class="card-header flex-between">
         <div class="card-title">
-          <span>Execution Performance & Turnaround Metrics Breakdown</span>
+          <span>Execution Performance &amp; Turnaround Metrics Breakdown</span>
         </div>
+        <span class="font-xs text-dim">Non-preemptive run results</span>
       </div>
       <div class="card-body p-0">
         <div class="table-container">
@@ -196,11 +354,11 @@
             <thead>
               <tr>
                 <th>Task</th>
-                <th>Arrival ($t$)</th>
+                <th>Arrival (t)</th>
                 <th>Burst</th>
-                <th>Deadline</th>
-                <th>Start ($t$)</th>
-                <th>Completion ($t$)</th>
+                <th>Deadline (t)</th>
+                <th>Start (t)</th>
+                <th>Completion (t)</th>
                 <th>Wait Time</th>
                 <th>Turnaround</th>
                 <th>Response</th>
@@ -218,14 +376,30 @@
     </section>
   </div>
 
-  <!-- Add Task Modal -->
+  <!-- Add / Edit Task Modal -->
   <div id="addTaskModal" class="modal hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-dialog">
-      <div class="modal-header">
-        <h3>Create New Task</h3>
+      <div class="modal-header flex-between">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <h3 id="modalTaskTitle">Create New Task</h3>
+          <button type="button" id="btnMagicFill" class="btn-magic-fill" title="Auto-fill realistic smart task">✨ Magic
+            Auto-Fill</button>
+        </div>
         <button class="btn-close" id="btnCloseModal">&times;</button>
       </div>
+
+      <!-- Quick Preset Templates -->
+      <div class="preset-section">
+        <span class="preset-label">Quick Presets:</span>
+        <div class="preset-chips">
+          <button type="button" class="preset-chip" data-preset="hotfix">🔥 Critical Hotfix</button>
+          <button type="button" class="preset-chip" data-preset="feature">💳 Core API</button>
+          <button type="button" class="preset-chip" data-preset="test">🧪 Test Suite</button>
+          <button type="button" class="preset-chip" data-preset="cleanup">🧹 DB Cleanup</button>
+        </div>
+      </div>
+
       <form id="addTaskForm">
         <div class="form-group">
           <label for="taskName">Task Name</label>
@@ -237,7 +411,7 @@
             <input type="number" id="importance" min="1" max="10" value="5" required>
           </div>
           <div class="form-group">
-            <label for="arrivalTime">Arrival Time ($t$)</label>
+            <label for="arrivalTime">Arrival Time (t)</label>
             <input type="number" id="arrivalTime" min="0" value="0" required>
           </div>
         </div>
@@ -247,8 +421,12 @@
             <input type="number" id="burstTime" min="1" value="4" required>
           </div>
           <div class="form-group">
-            <label for="deadline">Deadline ($t$)</label>
-            <input type="number" id="deadline" min="1" value="20" required>
+            <label for="deadline">
+              Deadline (t)
+              <span class="auto-calc-pill">⚡ Formula: Arr + Burst × (1 + (10 - Imp)/5)</span>
+            </label>
+            <input type="number" id="deadline" min="1" value="12" readonly class="input-readonly">
+            <small id="deadlineFormulaLive" class="form-hint" style="color: #34d399; font-size: 11px; margin-top: 4px; display: block;">Formula: 0 + 4 × (1 + (10 - 5)/5) = 12</small>
           </div>
         </div>
         <div class="form-group">
@@ -266,18 +444,18 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Task</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitTask">Save Task</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- HTTP Basic Auth Login Modal -->
+  <!-- JWT Login Modal -->
   <div id="loginModal" class="modal hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>HTTP Basic Authentication</h3>
+        <h3>Login to DynaSched</h3>
         <button class="btn-close" id="btnCloseLoginModal">&times;</button>
       </div>
       <form id="loginForm">
@@ -293,8 +471,12 @@
         <div class="auth-credentials-box">
           <div class="auth-box-title">Demo Credentials:</div>
           <div class="auth-box-item">• <strong>Admin:</strong> <code>admin</code> / <code>admin123</code></div>
-          <div class="auth-box-item">• <strong>Lead:</strong> <code>nitin892684@gmail.com</code> / <code>password123</code></div>
-          <div class="auth-box-item">• <strong>Developer:</strong> <code>ashishrautela190@gmail.com</code> / <code>password123</code></div>
+          <div class="auth-box-item">• <strong>Lead:</strong> <code>nitin892684@gmail.com</code> /
+            <code>password123</code>
+          </div>
+          <div class="auth-box-item">• <strong>Developer:</strong> <code>ashishrautela190@gmail.com</code> /
+            <code>password123</code>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelLogin">Cancel</button>
@@ -304,6 +486,9 @@
     </div>
   </div>
 
+  <div id="toastNotification" class="toast hidden"></div>
+
   <script src="app.js"></script>
 </body>
+
 </html>

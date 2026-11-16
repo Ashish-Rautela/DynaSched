@@ -1,30 +1,9 @@
+const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 
-class AuthService {
-  /**
-   * Parses standard HTTP Basic Auth header: 'Basic <base64(user:pass)>'
-   * @param {string} authHeader
-   * @returns {{ username: string, password: string } | null}
-   */
-  static parseBasicAuthHeader(authHeader) {
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-      return null;
-    }
-    try {
-      const base64Credentials = authHeader.substring(6).trim();
-      const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-      const colonIndex = credentials.indexOf(':');
-      if (colonIndex === -1) {
-        return null;
-      }
-      const username = credentials.substring(0, colonIndex);
-      const password = credentials.substring(colonIndex + 1);
-      return { username, password };
-    } catch {
-      return null;
-    }
-  }
+const JWT_SECRET = process.env.JWT_SECRET || 'dynasched_jwt_secret_2024';
 
+class AuthService {
   /**
    * Verifies credentials against configured admin or database users.
    * @param {string} username - Username, email, or team member name
@@ -75,6 +54,33 @@ class AuthService {
     }
 
     return { authenticated: false, error: 'Invalid credentials' };
+  }
+
+  /**
+   * Generates a JWT for the given user.
+   * @param {object} user - { user_id, name, email, role }
+   * @returns {string} signed JWT token
+   */
+  static generateToken(user) {
+    const payload = {
+      user_id: user.user_id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+    return jwt.sign(payload, JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+  }
+
+  /**
+   * Verifies a JWT and returns its decoded payload.
+   * @param {string} token
+   * @returns {object} decoded payload
+   * @throws if token is invalid or expired
+   */
+  static verifyToken(token) {
+    return jwt.verify(token, JWT_SECRET);
   }
 }
 

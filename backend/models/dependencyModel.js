@@ -30,6 +30,10 @@ class DependencyModel {
     return rowCount > 0;
   }
 
+  static async deleteByTaskId(taskId, client = db) {
+    await client.query('DELETE FROM task_dependencies WHERE task_id = $1', [taskId]);
+  }
+
   static async deleteAll(client = db) {
     await client.query('DELETE FROM task_dependencies');
   }
